@@ -2,6 +2,8 @@ from dataclasses import dataclass
 import requests
 import json
 
+BASE_URL = "http://192.168.88.100:607"
+
 @dataclass
 class User:
     id: int
@@ -29,24 +31,28 @@ class Prices:
     user_prices: list[UserPrices]
 
 users: list[User] = [
-    User(3, "Администрация", 0),
-    User(4, "Постоянный клинет", 0.95),
-    User(5, "Работник Streat Food", 0.80),
+    User(3, "Boss", 0.50),
+    User(5, "Администрация", 0.75),
+    User(6, "-10%", 1.10),
+    User(8, "5%", 0.95),
+    User(9, "15%", 0.85),
+    User(10, "3%", 0.97),
+    User(11, "7%", 0.93),
 ]
 
 headers = {
-    "Authorization": "Basic QXJ0ZW06MjM3NzE=",
+    "Authorization": "Basic YWRtaW46YWRtaW4=",
     "Content-Type": "application/json",
     "accept": "application/json"
 }
 
 
 def custom_round(number: int):
-    return round(number / 10) * 10
+    return round(number / 5) * 5
 
 
 def get_all_avaliable_products() -> list[Product]:
-    url = "http://192.168.88.100/api/products"
+    url = f"{BASE_URL}/api/products"
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
         return []
@@ -69,7 +75,7 @@ def get_all_avaliable_products() -> list[Product]:
 
 
 def get_user_price_id(product_id, user_id) -> int | None:
-    url = f"http://192.168.88.100/api/v2.0/products/{product_id}/userprices"
+    url = f"{BASE_URL}/api/v2.0/products/{product_id}/userprices"
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
         return None
@@ -91,24 +97,24 @@ def get_prices_for_all_users(products: list[Product]) -> list[Prices]:
             if user_price_id is None:
                 continue
 
-            if user.id == 3:
-                if product.cost is None:
-                    product.cost = 0
-                user_prices.append(
-                    UserPrices(
-                        user_id=user.id,
-                        price=int(product.cost),
-                        user_price_id=user_price_id
-                    )
+            # if user.id == 3:
+                # if product.cost is None:
+                    # product.cost = 0
+                # user_prices.append(
+                    # UserPrices(
+                        # user_id=user.id,
+                        # price=int(product.cost),
+                        # user_price_id=user_price_id
+                    # )
+                # )
+            # else:
+            user_prices.append(
+                UserPrices(
+                    user_id=user.id,
+                    price=custom_round(int(product.price*user.discount)),
+                    user_price_id=user_price_id
                 )
-            else:
-                user_prices.append(
-                    UserPrices(
-                        user_id=user.id,
-                        price=custom_round(int(product.price*user.discount)),
-                        user_price_id=user_price_id
-                    )
-                )
+            )
             
         prices.append(
             Prices(
@@ -122,7 +128,7 @@ def get_prices_for_all_users(products: list[Product]) -> list[Prices]:
 
 
 def update_price(prices: Prices):
-    url = "http://192.168.88.100/api/v2.0/products/userprices"
+    url = f"{BASE_URL}/api/v2.0/products/userprices"
     for user in prices.user_prices:
         data = {
           "id": user.user_price_id,
